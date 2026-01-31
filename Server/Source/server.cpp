@@ -13,6 +13,10 @@
 #include <sdk.hpp>
 #include <signal.h>
 #include <thread>
+#ifdef __ANDROID__
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 Core* core = nullptr;
 std::atomic_bool done = false;
@@ -168,8 +172,24 @@ int main(int argc, char** argv)
 /// None of that GLIBC 2.27 crap
 extern "C" __attribute__((visibility("default"))) int getentropy(void* buffer, size_t length)
 {
+	#ifdef __ANDROID__
+	// Android implementation using /dev/urandom
+	int fd = open("/dev/urandom", O_RDONLY);
+	if (fd < 0) {
+		errno = ENOSYS;
+		return -1;
+	}
+	ssize_t ret = read(fd, buffer, length);
+	close(fd);
+	if (ret < 0 || (size_t)ret != length) {
+		errno = EIO;
+		return -1;
+	}
+	return 0;
+#else
 	errno = ENOSYS;
 	return -1;
+#endif
 }
 
 #endif
