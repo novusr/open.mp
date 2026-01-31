@@ -312,3 +312,5 @@ cmake_install.cmake
 *-targets.cmake
 CTestTestfile.cmake
 *Config.cmake
+android-deps
+build-android-arm64

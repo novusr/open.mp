@@ -2180,9 +2180,9 @@ public:
 		String input(String(password) + String(salt));
 
 		unsigned char md[SHA256_DIGEST_LENGTH];
-		size_t md_len = 0;
-
-		if (!EVP_Q_digest(NULL, "SHA256", NULL, input.data(), input.length(), md, &md_len))
+		
+		// Use SHA256() which is available in both OpenSSL 1.1.1 and 3.x
+		if (!SHA256(reinterpret_cast<const unsigned char*>(input.data()), input.length(), md))
 		{
 			return false;
 		}

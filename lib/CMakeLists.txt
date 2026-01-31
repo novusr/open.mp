@@ -1,6 +1,14 @@
-# Conan third-party libraries
-include(${CMAKE_SOURCE_DIR}/lib/cmake-conan/conan.cmake)
-include(${CMAKE_SOURCE_DIR}/lib/cmake-conan/conan-omp.cmake)
+# =============================================================================
+# Third-party Libraries Configuration
+# =============================================================================
+
+# Android: Use pre-built libraries and FetchContent for header-only libs
+# Non-Android: Use Conan package manager
+if(NOT ANDROID)
+	# Conan third-party libraries (non-Android only)
+	include(${CMAKE_SOURCE_DIR}/lib/cmake-conan/conan.cmake)
+	include(${CMAKE_SOURCE_DIR}/lib/cmake-conan/conan-omp.cmake)
+endif()
 
 if(BUILD_SERVER)
 	if(BUILD_PAWN_COMPONENT)
@@ -110,45 +118,137 @@ add_subdirectory(ttmath)
 GroupSourcesByFolder(ttmath)
 set_property(TARGET ttmath PROPERTY FOLDER "lib")
 
-# JSON
-# ----
-conan_omp_add_lib(nlohmann_json 3.9.1)
+# =============================================================================
+# Android: Use pre-built libraries and FetchContent
+# =============================================================================
+if(ANDROID)
+	include(FetchContent)
+	set(ANDROID_DEPS_DIR "${CMAKE_SOURCE_DIR}/android-deps/${ANDROID_ABI}")
+	
+	# Check if pre-built deps exist
+	if(EXISTS "${ANDROID_DEPS_DIR}/lib")
+		message(STATUS "Using pre-built Android dependencies from: ${ANDROID_DEPS_DIR}")
+	else()
+		message(WARNING "Android dependencies not found at ${ANDROID_DEPS_DIR}")
+		message(WARNING "Run scripts/build_deps_android.sh first to build dependencies")
+	endif()
+	
+	# nlohmann_json (header-only) - Use FetchContent
+	FetchContent_Declare(
+		nlohmann_json
+		GIT_REPOSITORY https://github.com/nlohmann/json.git
+		GIT_TAG v3.9.1
+		GIT_SHALLOW TRUE
+	)
+	set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+	set(JSON_Install OFF CACHE BOOL "" FORCE)
+	FetchContent_MakeAvailable(nlohmann_json)
+	# Create alias to match Conan naming
+	if(NOT TARGET CONAN_PKG::nlohmann_json)
+		add_library(CONAN_PKG::nlohmann_json ALIAS nlohmann_json)
+	endif()
+	
+	# OpenSSL (pre-built static)
+	if(EXISTS "${ANDROID_DEPS_DIR}/lib/libssl.a")
+		add_library(openssl_ssl STATIC IMPORTED GLOBAL)
+		set_target_properties(openssl_ssl PROPERTIES
+			IMPORTED_LOCATION "${ANDROID_DEPS_DIR}/lib/libssl.a"
+		)
+		add_library(openssl_crypto STATIC IMPORTED GLOBAL)
+		set_target_properties(openssl_crypto PROPERTIES
+			IMPORTED_LOCATION "${ANDROID_DEPS_DIR}/lib/libcrypto.a"
+		)
+		# Create interface target matching Conan
+		add_library(CONAN_PKG::openssl INTERFACE IMPORTED GLOBAL)
+		set_target_properties(CONAN_PKG::openssl PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${ANDROID_DEPS_DIR}/include"
+			INTERFACE_LINK_LIBRARIES "openssl_ssl;openssl_crypto"
+		)
+	else()
+		message(WARNING "OpenSSL not found. Build with scripts/build_deps_android.sh")
+	endif()
+	
+	# ghc-filesystem (header-only) - Use FetchContent  
+	FetchContent_Declare(
+		ghc_filesystem
+		GIT_REPOSITORY https://github.com/gulrak/filesystem.git
+		GIT_TAG v1.5.12
+		GIT_SHALLOW TRUE
+	)
+	FetchContent_MakeAvailable(ghc_filesystem)
+	if(NOT TARGET CONAN_PKG::ghc-filesystem)
+		add_library(CONAN_PKG::ghc-filesystem ALIAS ghc_filesystem)
+	endif()
+	
+	# cxxopts (header-only) - Use FetchContent
+	FetchContent_Declare(
+		cxxopts
+		GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+		GIT_TAG v2.2.1
+		GIT_SHALLOW TRUE
+	)
+	set(CXXOPTS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+	set(CXXOPTS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+	FetchContent_MakeAvailable(cxxopts)
+	if(NOT TARGET CONAN_PKG::cxxopts)
+		add_library(CONAN_PKG::cxxopts ALIAS cxxopts)
+	endif()
+	
+	# SQLite3 (pre-built, optional)
+	if(BUILD_SQLITE_COMPONENT AND EXISTS "${ANDROID_DEPS_DIR}/lib/libsqlite3.a")
+		add_library(CONAN_PKG::sqlite3 STATIC IMPORTED GLOBAL)
+		set_target_properties(CONAN_PKG::sqlite3 PROPERTIES
+			IMPORTED_LOCATION "${ANDROID_DEPS_DIR}/lib/libsqlite3.a"
+			INTERFACE_INCLUDE_DIRECTORIES "${ANDROID_DEPS_DIR}/include"
+		)
+	endif()
 
-# OpenSSL
-# -------
+# =============================================================================
+# Non-Android: Use Conan packages
+# =============================================================================
+else()
+	# JSON
+	# ----
+	conan_omp_add_lib(nlohmann_json 3.9.1)
+
+	# OpenSSL
+	# -------
 	if(SHARED_OPENSSL)
 		message("Using shared OpenSSL")
-	conan_omp_add_lib_opt(openssl 3.0.13 "openssl:shared=True")
-else()
+		conan_omp_add_lib_opt(openssl 3.0.13 "openssl:shared=True")
+	else()
 		message("Using static OpenSSL")
-	conan_omp_add_lib(openssl 3.0.13)
-endif()
-
-# ghc-filesystem
-# ----
-conan_omp_add_lib(ghc-filesystem 1.5.12)
-
-if(BUILD_SQLITE_COMPONENT)
-	# SQLite 3
-	# --------
-	conan_omp_add_lib_opt(sqlite3 3.36.0 "sqlite3:enable_math_functions=False")
-endif()
-
-if(BUILD_UNICODE_COMPONENT)
-	# ICU
-	# ---
-	conan_omp_add_lib(icu 70.1)
-
-	if(WIN32)
-		target_link_options(CONAN_PKG::icu INTERFACE "/SAFESEH:NO")
+		conan_omp_add_lib(openssl 3.0.13)
 	endif()
-endif()
+
+	# ghc-filesystem
+	# ----
+	conan_omp_add_lib(ghc-filesystem 1.5.12)
+
+	if(BUILD_SQLITE_COMPONENT)
+		# SQLite 3
+		# --------
+		conan_omp_add_lib_opt(sqlite3 3.36.0 "sqlite3:enable_math_functions=False")
+	endif()
+
+	if(BUILD_UNICODE_COMPONENT)
+		# ICU
+		# ---
+		conan_omp_add_lib(icu 70.1)
+
+		if(WIN32)
+			target_link_options(CONAN_PKG::icu INTERFACE "/SAFESEH:NO")
+		endif()
+	endif()
+	
+	# cxxopts
+	# ----
+	conan_omp_add_lib(cxxopts 2.2.1)
 endif()
 
-if(BUILD_ABI_CHECK_TOOL)
+endif() # BUILD_SERVER
+
+if(BUILD_ABI_CHECK_TOOL AND NOT ANDROID)
 	conan_omp_add_lib(libelfin 0.3)
 endif()
 
-# cxxopts
-# ----
-conan_omp_add_lib(cxxopts 2.2.1)

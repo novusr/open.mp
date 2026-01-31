@@ -265,9 +265,12 @@ public:
 			{
 				cinThread.join();
 			}
-#else
+#elif !defined(ANDROID)
+			// Android's Bionic libc doesn't support pthread_cancel
 			pthread_cancel(nativeThreadHandle);
 #endif
+			// On Android, the thread will exit when valid becomes false
+			// and std::getline returns, or on process termination
 
 			delete threadData;
 			threadData = nullptr;
