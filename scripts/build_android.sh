@@ -9,7 +9,7 @@ NDK_PATH="${ANDROID_NDK:-/home/novusr/Android/Sdk/ndk/29.0.14206865}"
 BUILD_DIR="build-android-arm64"
 CONFIG="${CONFIG:-RelWithDebInfo}"
 ANDROID_ABI="${ANDROID_ABI:-arm64-v8a}"
-ANDROID_PLATFORM="${ANDROID_PLATFORM:-android-21}"
+ANDROID_PLATFORM="${ANDROID_PLATFORM:-android-24}"
 ANDROID_STL="${ANDROID_STL:-c++_static}"
 
 # Colors for output

@@ -9,7 +9,7 @@ set -e
 
 # Configuration
 NDK_PATH="${ANDROID_NDK:-/home/novusr/Android/Sdk/ndk/29.0.14206865}"
-API_LEVEL=21
+API_LEVEL=24
 TARGET=aarch64-linux-android
 DEPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/android-deps/arm64-v8a"
 DOWNLOAD_DIR="/tmp/android-deps-src"
@@ -48,21 +48,21 @@ mkdir -p "$DEPS_DIR"/{lib,include}
 mkdir -p "$DOWNLOAD_DIR"
 
 # =============================================================================
-# OpenSSL 1.1.1w (better Android compatibility - no getentropy dependency)
+# OpenSSL 3.0.13
 # =============================================================================
 build_openssl() {
-    echo -e "${YELLOW}Building OpenSSL 1.1.1w...${NC}"
+    echo -e "${YELLOW}Building OpenSSL 3.0.13...${NC}"
     
     cd "$DOWNLOAD_DIR"
     
-    if [ ! -d "openssl-1.1.1w" ]; then
-        if [ ! -f "openssl-1.1.1w.tar.gz" ]; then
-            wget -q https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+    if [ ! -d "openssl-3.0.13" ]; then
+        if [ ! -f "openssl-3.0.13.tar.gz" ]; then
+            wget -q https://www.openssl.org/source/openssl-3.0.13.tar.gz
         fi
-        tar -xzf openssl-1.1.1w.tar.gz
+        tar -xzf openssl-3.0.13.tar.gz
     fi
     
-    cd openssl-1.1.1w
+    cd openssl-3.0.13
     
     # Clean previous build
     make clean 2>/dev/null || true
