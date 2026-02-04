@@ -1,12 +1,12 @@
 [submodule "lib/pawn"]
 	path = lib/pawn
-	url = https://github.com/openmultiplayer/compiler.git
+	url = https://github.com/novusr/compiler.git
 [submodule "lib/pawn-natives"]
 	path = lib/pawn-natives
 	url = https://github.com/openmultiplayer/pawn-natives.git
 [submodule "lib/RakNet"]
 	path = lib/RakNet
-	url = https://github.com/openmultiplayer/RakNet.git
+	url = https://github.com/novusr/RakNet.git
 [submodule "lib/ttmath"]
 	path = lib/ttmath
 	url = https://github.com/openmultiplayer/ttmath.git
